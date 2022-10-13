@@ -1,0 +1,33 @@
+{
+  "name": "event_emitter",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "A basic event emitter / publish subscribe library used by MDaemon Webmail",
+  "main": "dist/event_emitter.cjs.js",
+  "module": "dist/event_emitter.mjs.js",
+  "browser": "dist/event_emitter.umd.js",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdaemon-technologies/event_emitter.git"
+  },
+  "keywords": [],
+  "author": "MDaemon Technologies, Ltd.",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mdaemon-technologies/event_emitter/issues"
+  },
+  "homepage": "https://github.com/mdaemon-technologies/event_emitter#readme",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^23.0.0",
+    "rollup": "^2.68.0",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "files": [
+    "dist"
+  ]
+}
