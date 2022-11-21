@@ -1,7 +1,7 @@
 {
   "name": "@mdaemon/emitter",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A basic event emitter / publish subscribe library used by MDaemon Webmail",
   "main": "dist/event_emitter.cjs.js",
   "module": "dist/event_emitter.mjs.js",
