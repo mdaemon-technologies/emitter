@@ -1,11 +1,11 @@
 {
   "name": "@mdaemon/emitter",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A basic event emitter / publish subscribe library used by MDaemon Webmail",
-  "main": "dist/event_emitter.cjs.js",
-  "module": "dist/event_emitter.mjs.js",
-  "browser": "dist/event_emitter.umd.js",
+  "main": "dist/emitter.cjs.js",
+  "module": "dist/emitter.mjs.js",
+  "browser": "dist/emitter.umd.js",
   "publishConfig": {
     "access": "public"
   },
@@ -16,15 +16,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mdaemon-technologies/event_emitter.git"
+    "url": "git+https://github.com/mdaemon-technologies/emitter.git"
   },
   "keywords": ["event emitter", "pub/sub", "publish", "subscribe", "trigger", "event trigger"],
   "author": "MDaemon Technologies, Ltd.",
   "license": "LGPL-2.1",
   "bugs": {
-    "url": "https://github.com/mdaemon-technologies/event_emitter/issues"
+    "url": "https://github.com/mdaemon-technologies/emitter/issues"
   },
-  "homepage": "https://github.com/mdaemon-technologies/event_emitter#readme",
+  "homepage": "https://github.com/mdaemon-technologies/emitter#readme",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^23.0.0",
     "rollup": "^2.68.0",
