@@ -18,7 +18,7 @@
     "type": "git",
     "url": "git+https://github.com/mdaemon-technologies/event_emitter.git"
   },
-  "keywords": [],
+  "keywords": ["event emitter", "pub/sub", "publish", "subscribe", "trigger", "event trigger"],
   "author": "MDaemon Technologies, Ltd.",
   "license": "LGPL-2.1",
   "bugs": {
