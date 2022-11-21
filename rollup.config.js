@@ -4,10 +4,10 @@ import commonjs from '@rollup/plugin-commonjs';
 export default [
   // browser-friendly UMD build
   {
-    input: 'src/event_emitter.js',
+    input: 'src/emitter.js',
     output: {
-      name: 'event_emitter',
-      file: "dist/event_emitter.umd.js",
+      name: 'emitter',
+      file: "dist/emitter.umd.js",
       format: 'umd'
     },
     plugins: [
@@ -16,10 +16,10 @@ export default [
     ]
   },
   {
-    input: 'src/event_emitter.js',
+    input: 'src/emitter.js',
     output: [
-      { file: "dist/event_emitter.cjs.js", format: 'cjs' },
-      { file: "dist/event_emitter.mjs.js", format: 'es' }
+      { file: "dist/emitter.cjs.js", format: 'cjs', exports: 'default' },
+      { file: "dist/emitter.mjs.js", format: 'es' }
     ],
     plugins: [
       terser()

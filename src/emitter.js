@@ -17,11 +17,11 @@
 *    USA
 */
 
-import is from "is";
+import is from "./is";
 
-function Event(name, id, func) {
+function Event(name, namespace, func) {
   this.name = name;
-  this.id = id;
+  this.namespace = namespace;
   this.func = func;
 }
 
@@ -30,10 +30,10 @@ function Emitter() {
 
   var oneTime = [];
 
-  var getEventIndex = function (name, id) {
+  var getEventIndex = function (name, namespace) {
     var i = events.length;
     while (i--) {
-      if (events[i].name === name && events[i].id === id) {
+      if (events[i].name === name && events[i].namespace === namespace) {
         return i;
       }
     }
@@ -52,16 +52,16 @@ function Emitter() {
     return evs;
   };
 
-  this.register = function (name, id, func) {
-    if (is.func(id)) {
+  this.register = function (name, namespace, func) {
+    if (is.func(namespace)) {
       if (is.string(func)) {
         var temp = func;
-        func = id;
-        id = temp;
+        func = namespace;
+        namespace = temp;
       }
       else {
-        func = id;
-        id = "all";
+        func = namespace;
+        namespace = "all";
       }
     }
 
@@ -69,8 +69,8 @@ function Emitter() {
       return;
     }
 
-    var idx = getEventIndex(name, id);
-    var ev = new Event(name, id, func);
+    var idx = getEventIndex(name, namespace);
+    var ev = new Event(name, namespace, func);
     if (idx === -1) {
       events.push(ev);
     } else {
@@ -79,6 +79,7 @@ function Emitter() {
   };
 
   this.on = this.register;
+  this.subscribe = this.register;
 
   this.once = function (name, func) {
     if (!name) {
@@ -89,20 +90,20 @@ function Emitter() {
     oneTime.push(ev);
   };
 
-  this.onMany = function (id, obj) {
+  this.onMany = function (namespace, obj) {
 
     if (!obj) {
       return;
     }
 
     for (var ev in obj) {
-      this.on(ev, id, obj[ev]);
+      this.on(ev, namespace, obj[ev]);
     }
   };
 
-  this.unregister = function (name, id) {
-    if (!id) {
-      id = "all";
+  this.unregister = function (name, namespace) {
+    if (!namespace) {
+      namespace = "all";
     }
 
     if (!name) {
@@ -111,17 +112,17 @@ function Emitter() {
 
     var idx = 0;
 
-    if (id === "all") {
+    if (namespace === "all") {
       idx = events.length;
       while (idx--) {
-        if (events[idx].id === "all") {
+        if (events[idx].namespace === "all") {
           events.splice(idx, 1);
         }
       }
       return;
     }
 
-    idx = getEventIndex(name, id);
+    idx = getEventIndex(name, namespace);
     if (idx !== -1) {
       events.splice(idx, 1);
     }
@@ -135,11 +136,12 @@ function Emitter() {
   };
 
   this.off = this.unregister;
+  this.unsubscribe = this.unregister;
 
-  this.offAll = function (id) {
+  this.offAll = function (namespace) {
     var i = events.length;
     while (i--) {
-      if (events[i].id === id) {
+      if (events[i].namespace === namespace) {
         events.splice(i, 1);
       }
     }
@@ -163,15 +165,16 @@ function Emitter() {
   };
 
   this.emit = this.trigger;
+  this.publish = this.trigger;
 
   this.propagate = function (data, name) {
     this.trigger(name, data);
   };
 
-  this.isRegistered = function (name, id) {
+  this.isRegistered = function (name, namespace) {
     var i = events.length;
     while (i--) {
-      if (events[i].id === id && events[i].name === name) {
+      if (events[i].namespace === namespace && events[i].name === name) {
         return true;
       }
     }
