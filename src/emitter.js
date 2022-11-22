@@ -17,60 +17,62 @@
 *    USA
 */
 
-import is from "./is";
+const is = require("./is");
 
-function Event(name, namespace, func) {
+function Event(name, id, func) {
   this.name = name;
-  this.namespace = namespace;
+  this.id = id;
   this.func = func;
 }
 
 function Emitter() {
-  var events = [];
+  const events = [];
+  const oneTime = [];
 
-  var oneTime = [];
-
-  var getEventIndex = function (name, namespace) {
-    var i = events.length;
-    while (i--) {
-      if (events[i].name === name && events[i].namespace === namespace) {
-        return i;
+  const getEventIndex = (name, id) => {
+    let idx = events.length;
+    while (idx) {
+      idx -= 1;
+      if (events[idx].name === name && events[idx].id === id) {
+        return idx;
       }
     }
 
     return -1;
   };
 
-  var getEvents = function (name) {
-    var evs = [];
-    for (var i = 0, iMax = events.length; i < iMax; i++) {
-      if (events[i].name === name) {
-        evs.push(events[i]);
+  const getEvents = (name) => {
+    const evs = [];
+    for (let idx = 0, iMax = events.length; idx < iMax; idx += 1) {
+      if (events[idx].name === name) {
+        evs.push(events[idx]);
       }
     }
 
     return evs;
   };
 
-  this.register = function (name, namespace, func) {
-    if (is.func(namespace)) {
-      if (is.string(func)) {
-        var temp = func;
-        func = namespace;
-        namespace = temp;
-      }
-      else {
-        func = namespace;
-        namespace = "all";
+  this.register = (name, id, func) => {
+    const eventName = name;
+    let callback = func;
+    let eventId = id;
+    if (is.func(eventId)) {
+      if (is.string(callback)) {
+        const temp = callback;
+        callback = eventId;
+        eventId = temp;
+      } else {
+        callback = id;
+        eventId = 'all';
       }
     }
 
-    if (!name) {
+    if (!eventName) {
       return;
     }
 
-    var idx = getEventIndex(name, namespace);
-    var ev = new Event(name, namespace, func);
+    const idx = getEventIndex(eventName, eventId);
+    const ev = new Event(eventName, eventId, callback);
     if (idx === -1) {
       events.push(ev);
     } else {
@@ -81,54 +83,53 @@ function Emitter() {
   this.on = this.register;
   this.subscribe = this.register;
 
-  this.once = function (name, func) {
+  this.once = (name, func) => {
     if (!name) {
       return;
     }
 
-    var ev = new Event(name, "", func);
+    const ev = new Event(name, '', func);
     oneTime.push(ev);
   };
 
-  this.onMany = function (namespace, obj) {
-
+  this.onMany = (id, obj) => {
     if (!obj) {
       return;
     }
 
-    for (var ev in obj) {
-      this.on(ev, namespace, obj[ev]);
-    }
+    Object.keys(obj).forEach((key) => {
+      this.on(key, id, obj[key]);
+    });
   };
 
-  this.unregister = function (name, namespace) {
-    if (!namespace) {
-      namespace = "all";
-    }
+  this.unregister = (name, id) => {
+    const eventId = !id ? 'all' : id;
 
     if (!name) {
       return;
     }
 
-    var idx = 0;
+    let idx = 0;
 
-    if (namespace === "all") {
+    if (eventId === 'all') {
       idx = events.length;
-      while (idx--) {
-        if (events[idx].namespace === "all") {
+      while (idx) {
+        idx -= 1;
+        if (events[idx].id === 'all') {
           events.splice(idx, 1);
         }
       }
       return;
     }
 
-    idx = getEventIndex(name, namespace);
+    idx = getEventIndex(name, id);
     if (idx !== -1) {
       events.splice(idx, 1);
     }
 
     idx = oneTime.length;
-    while (idx--) {
+    while (idx) {
+      idx -= 1;
       if (oneTime[idx].name === name) {
         oneTime.splice(idx, 1);
       }
@@ -138,25 +139,25 @@ function Emitter() {
   this.off = this.unregister;
   this.unsubscribe = this.unregister;
 
-  this.offAll = function (namespace) {
-    var i = events.length;
-    while (i--) {
-      if (events[i].namespace === namespace) {
-        events.splice(i, 1);
+  this.offAll = (id) => {
+    let idx = events.length;
+    while (idx) {
+      idx -= 1;
+      if (events[idx].id === id) {
+        events.splice(idx, 1);
       }
     }
   };
 
-  this.trigger = function (name, data) {
-
-    var evs = getEvents(name);
-    for (var i = 0, iMax = evs.length; i < iMax; i++) {
-      evs[i].func(data, name);
+  this.trigger = (name, data) => {
+    const evs = getEvents(name);
+    for (let idx = 0, iMax = evs.length; idx < iMax; idx += 1) {
+      evs[idx].func(data, name);
     }
 
-
-    var idx = oneTime.length;
-    while (idx--) {
+    let idx = oneTime.length;
+    while (idx) {
+      idx -= 1;
       if (oneTime[idx].name === name) {
         oneTime[idx].func(data, name);
         oneTime.splice(idx, 1);
@@ -167,14 +168,15 @@ function Emitter() {
   this.emit = this.trigger;
   this.publish = this.trigger;
 
-  this.propagate = function (data, name) {
+  this.propagate = (data, name) => {
     this.trigger(name, data);
   };
 
-  this.isRegistered = function (name, namespace) {
-    var i = events.length;
-    while (i--) {
-      if (events[i].namespace === namespace && events[i].name === name) {
+  this.isRegistered = (name, id) => {
+    let idx = events.length;
+    while (idx) {
+      idx -= 1;
+      if (events[idx].id === id && events[idx].name === name) {
         return true;
       }
     }
