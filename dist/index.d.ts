@@ -1,5 +1,3 @@
-import { off } from "process";
-
 export = Emitter;
 
 declare class Emitter {
