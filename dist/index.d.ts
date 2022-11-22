@@ -1,1 +1,2 @@
-export function Emitter(): void;
+declare class Emitter {}
+export default Emitter;
