@@ -25,26 +25,4 @@ export default [
       terser()
     ]
   },
-  {
-    input: 'src/is.js',
-    output: {
-      name: 'is',
-      file: "dist/is.umd.js",
-      format: 'umd'
-    },
-    plugins: [
-      commonjs(),
-      terser()
-    ]
-  },
-  {
-    input: 'src/is.js',
-    output: [
-      { file: "dist/is.cjs", format: 'cjs', exports: 'default' },
-      { file: "dist/is.mjs", format: 'es' }
-    ],
-    plugins: [
-      terser()
-    ]
-  },
 ]

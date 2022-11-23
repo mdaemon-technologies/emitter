@@ -1,0 +1,1 @@
+declare module '@mdaemon/emitter/dist/emitter.mjs';

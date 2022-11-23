@@ -1,18 +1,3 @@
-declare interface isTypes {
-  string(str: any): boolean;
-  object(str: any): boolean;
-  array(str: any): boolean;
-  number(str: any): boolean;
-  bool(str: any): boolean;
-  func(str: any): boolean;
-  nul(str: any): boolean;
-  undef(str: any): boolean;
-}
-
-declare namespace is {
-  type ProtoType = isTypes;
-}
-
 export = Emitter;
 
 declare class Emitter {

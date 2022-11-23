@@ -17,7 +17,7 @@
 *    USA
 */
 
-is = (function () {
+const is = (function () {
   var isObject = function (val) {
     return typeof val === "object" && val !== null && !Array.isArray(val);
   };
