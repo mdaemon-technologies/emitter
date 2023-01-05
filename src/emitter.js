@@ -17,7 +17,7 @@
 *    USA
 */
 
-import is from './is';
+const is = require("./is");
 
 function Event(name, id, func) {
   this.name = name;
@@ -25,7 +25,7 @@ function Event(name, id, func) {
   this.func = func;
 }
 
-export default function Emitter() {
+function Emitter() {
   const events = [];
   const oneTime = [];
 
@@ -119,20 +119,21 @@ export default function Emitter() {
           events.splice(idx, 1);
         }
       }
+
+      idx = oneTime.length;
+      while (idx) {
+        idx -= 1;
+        if (oneTime[idx].name === name) {
+          oneTime.splice(idx, 1);
+        }
+      }
+
       return;
     }
 
     idx = getEventIndex(name, id);
     if (idx !== -1) {
       events.splice(idx, 1);
-    }
-
-    idx = oneTime.length;
-    while (idx) {
-      idx -= 1;
-      if (oneTime[idx].name === name) {
-        oneTime.splice(idx, 1);
-      }
     }
   };
 
@@ -173,10 +174,20 @@ export default function Emitter() {
   };
 
   this.isRegistered = (name, id) => {
+    const eventId = !id ? 'all' : id;
+
     let idx = events.length;
     while (idx) {
       idx -= 1;
-      if (events[idx].id === id && events[idx].name === name) {
+      if (events[idx].id === eventId && events[idx].name === name) {
+        return true;
+      }
+    }
+
+    idx = oneTime.length;
+    while (idx) {
+      idx -= 1;
+      if (oneTime[idx].name === name) {
         return true;
       }
     }
@@ -184,3 +195,5 @@ export default function Emitter() {
     return false;
   };
 }
+
+module.exports = Emitter;
