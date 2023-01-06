@@ -18,7 +18,7 @@ export default [
   {
     input: 'src/emitter.js',
     output: [
-      { file: "dist/emitter.cjs", format: 'cjs' },
+      { file: "dist/emitter.cjs", format: 'cjs', exports: "default" },
       { file: "dist/emitter.mjs", format: 'es' }
     ],
     plugins: [

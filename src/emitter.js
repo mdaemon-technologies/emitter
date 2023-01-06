@@ -17,7 +17,7 @@
 *    USA
 */
 
-const is = require("./is");
+import is from "./is";
 
 function Event(name, id, func) {
   this.name = name;
@@ -25,7 +25,7 @@ function Event(name, id, func) {
   this.func = func;
 }
 
-function Emitter() {
+export default function Emitter() {
   const events = [];
   const oneTime = [];
 
@@ -195,5 +195,3 @@ function Emitter() {
     return false;
   };
 }
-
-module.exports = Emitter;

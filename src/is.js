@@ -62,4 +62,4 @@ const is = (function () {
   };
 }());
 
-module.exports = is;
+export default is;

@@ -1,4 +1,4 @@
-const Emitter = require("./emitter");
+const Emitter = require("../dist/emitter.cjs");
 
 describe("Emitter tests", () => {
   let emitter = new Emitter();
