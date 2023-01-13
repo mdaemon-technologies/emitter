@@ -9,13 +9,13 @@ The "emitter" provides pub/sub options
 
 # Node CommonJS #
 ```javascript
-    const Emitter = require("@mdaemon/emitter");
+    const Emitter = require("@mdaemon/emitter/dist/emitter.cjs");
 ```
 
 # Node Modules #
 
 ```javascript
-    import Emitter from "@mdaemon/emitter";  
+    import Emitter from "@mdaemon/emitter/dist/emitter.mjs";  
 ```
 
 # Web #
