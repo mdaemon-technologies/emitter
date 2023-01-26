@@ -1,4 +1,3 @@
-import { terser } from 'rollup-plugin-terser';
 import commonjs from '@rollup/plugin-commonjs';
 
 export default [
@@ -11,8 +10,7 @@ export default [
       format: 'umd'
     },
     plugins: [
-      commonjs(),
-      terser()
+      commonjs()
     ]
   },
   {
@@ -22,7 +20,7 @@ export default [
       { file: "dist/emitter.mjs", format: 'es' }
     ],
     plugins: [
-      terser()
+      
     ]
   },
 ]

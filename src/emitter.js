@@ -25,7 +25,7 @@ function Event(name, id, func) {
   this.func = func;
 }
 
-export default function Emitter() {
+function Emitter() {
   const events = [];
   const oneTime = [];
 
@@ -195,3 +195,5 @@ export default function Emitter() {
     return false;
   };
 }
+
+export default Emitter;

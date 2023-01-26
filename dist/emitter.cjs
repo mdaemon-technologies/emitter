@@ -1,1 +1,263 @@
-"use strict";const t={string:function(t){return"string"==typeof t},object:function(t){return"object"==typeof t&&null!==t&&!Array.isArray(t)},array:function(t){return Array.isArray(t)},bool:function(t){return"boolean"==typeof t},number:function(t){return"number"==typeof t},func:function(t){return"function"==typeof t},nul:function(t){return null===t},undef:function(t){return void 0===t||void 0===t}};function e(t,e,n){this.name=t,this.id=e,this.func=n}module.exports=function(){const n=[],r=[],i=(t,e)=>{let r=n.length;for(;r;)if(r-=1,n[r].name===t&&n[r].id===e)return r;return-1};this.register=(r,s,o)=>{const u=r;let f=o,l=s;if(t.func(l))if(t.string(f)){const t=f;f=l,l=t}else f=s,l="all";if(!u)return;const h=i(u,l),c=new e(u,l,f);-1===h?n.push(c):n[h]=c},this.on=this.register,this.subscribe=this.register,this.once=(t,n)=>{if(!t)return;const i=new e(t,"",n);r.push(i)},this.onMany=(t,e)=>{e&&Object.keys(e).forEach((n=>{this.on(n,t,e[n])}))},this.unregister=(t,e)=>{if(!t)return;let s=0;if("all"!==(e||"all"))s=i(t,e),-1!==s&&n.splice(s,1);else{for(s=n.length;s;)s-=1,"all"===n[s].id&&n.splice(s,1);for(s=r.length;s;)s-=1,r[s].name===t&&r.splice(s,1)}},this.off=this.unregister,this.unsubscribe=this.unregister,this.offAll=t=>{let e=n.length;for(;e;)e-=1,n[e].id===t&&n.splice(e,1)},this.trigger=(t,e)=>{const i=(t=>{const e=[];for(let r=0,i=n.length;r<i;r+=1)n[r].name===t&&e.push(n[r]);return e})(t);for(let n=0,r=i.length;n<r;n+=1)i[n].func(e,t);let s=r.length;for(;s;)s-=1,r[s].name===t&&(r[s].func(e,t),r.splice(s,1))},this.emit=this.trigger,this.publish=this.trigger,this.propagate=(t,e)=>{this.trigger(e,t)},this.isRegistered=(t,e)=>{const i=e||"all";let s=n.length;for(;s;)if(s-=1,n[s].id===i&&n[s].name===t)return!0;for(s=r.length;s;)if(s-=1,r[s].name===t)return!0;return!1}};
+'use strict';
+
+/*
+*    Copyright (C) 1998-2022  MDaemon Technologies, Ltd.
+*
+*    This library is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU Lesser General Public
+*    License as published by the Free Software Foundation; either
+*    version 2.1 of the License, or (at your option) any later version.
+*
+*    This library is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*    Lesser General Public License for more details.
+*
+*    You should have received a copy of the GNU Lesser General Public
+*    License along with this library; if not, write to the Free Software
+*    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+*    USA
+*/
+
+const is = (function () {
+  var isObject = function (val) {
+    return typeof val === "object" && val !== null && !Array.isArray(val);
+  };
+
+  var isString = function (str) {
+    return typeof str === "string";
+  };
+
+  var isArray = function (arr) {
+    return Array.isArray(arr);
+  };
+
+  var isBoolean = function (bool) {
+    return typeof bool === "boolean";
+  };
+
+  var isNumber = function (num) {
+    return typeof num === "number";
+  };
+
+  var isFunction = function (func) {
+    return typeof func === "function";
+  };
+
+  var isNull = function (val) {
+    return val === null;
+  };
+
+  var isUndefined = function (val) {
+    return val === undefined || typeof val === "undefined";
+  };
+
+  return {
+    string: isString,
+    object: isObject,
+    array: isArray,
+    bool: isBoolean,
+    number: isNumber,
+    func: isFunction,
+    nul: isNull,
+    undef: isUndefined
+  };
+}());
+
+/*
+*    Copyright (C) 1998-2022  MDaemon Technologies, Ltd.
+*
+*    This library is free software; you can redistribute it and/or
+*    modify it under the terms of the GNU Lesser General Public
+*    License as published by the Free Software Foundation; either
+*    version 2.1 of the License, or (at your option) any later version.
+*
+*    This library is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*    Lesser General Public License for more details.
+*
+*    You should have received a copy of the GNU Lesser General Public
+*    License along with this library; if not, write to the Free Software
+*    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+*    USA
+*/
+
+function Event(name, id, func) {
+  this.name = name;
+  this.id = id;
+  this.func = func;
+}
+
+function Emitter() {
+  const events = [];
+  const oneTime = [];
+
+  const getEventIndex = (name, id) => {
+    let idx = events.length;
+    while (idx) {
+      idx -= 1;
+      if (events[idx].name === name && events[idx].id === id) {
+        return idx;
+      }
+    }
+
+    return -1;
+  };
+
+  const getEvents = (name) => {
+    const evs = [];
+    for (let idx = 0, iMax = events.length; idx < iMax; idx += 1) {
+      if (events[idx].name === name) {
+        evs.push(events[idx]);
+      }
+    }
+
+    return evs;
+  };
+
+  this.register = (name, id, func) => {
+    const eventName = name;
+    let callback = func;
+    let eventId = id;
+    if (is.func(eventId)) {
+      if (is.string(callback)) {
+        const temp = callback;
+        callback = eventId;
+        eventId = temp;
+      } else {
+        callback = id;
+        eventId = 'all';
+      }
+    }
+
+    if (!eventName) {
+      return;
+    }
+
+    const idx = getEventIndex(eventName, eventId);
+    const ev = new Event(eventName, eventId, callback);
+    if (idx === -1) {
+      events.push(ev);
+    } else {
+      events[idx] = ev;
+    }
+  };
+
+  this.on = this.register;
+  this.subscribe = this.register;
+
+  this.once = (name, func) => {
+    if (!name) {
+      return;
+    }
+
+    const ev = new Event(name, '', func);
+    oneTime.push(ev);
+  };
+
+  this.onMany = (id, obj) => {
+    if (!obj) {
+      return;
+    }
+
+    Object.keys(obj).forEach((key) => {
+      this.on(key, id, obj[key]);
+    });
+  };
+
+  this.unregister = (name, id) => {
+    const eventId = !id ? 'all' : id;
+
+    if (!name) {
+      return;
+    }
+
+    let idx = 0;
+
+    if (eventId === 'all') {
+      idx = events.length;
+      while (idx) {
+        idx -= 1;
+        if (events[idx].id === 'all') {
+          events.splice(idx, 1);
+        }
+      }
+
+      idx = oneTime.length;
+      while (idx) {
+        idx -= 1;
+        if (oneTime[idx].name === name) {
+          oneTime.splice(idx, 1);
+        }
+      }
+
+      return;
+    }
+
+    idx = getEventIndex(name, id);
+    if (idx !== -1) {
+      events.splice(idx, 1);
+    }
+  };
+
+  this.off = this.unregister;
+  this.unsubscribe = this.unregister;
+
+  this.offAll = (id) => {
+    let idx = events.length;
+    while (idx) {
+      idx -= 1;
+      if (events[idx].id === id) {
+        events.splice(idx, 1);
+      }
+    }
+  };
+
+  this.trigger = (name, data) => {
+    const evs = getEvents(name);
+    for (let idx = 0, iMax = evs.length; idx < iMax; idx += 1) {
+      evs[idx].func(data, name);
+    }
+
+    let idx = oneTime.length;
+    while (idx) {
+      idx -= 1;
+      if (oneTime[idx].name === name) {
+        oneTime[idx].func(data, name);
+        oneTime.splice(idx, 1);
+      }
+    }
+  };
+
+  this.emit = this.trigger;
+  this.publish = this.trigger;
+
+  this.propagate = (data, name) => {
+    this.trigger(name, data);
+  };
+
+  this.isRegistered = (name, id) => {
+    const eventId = !id ? 'all' : id;
+
+    let idx = events.length;
+    while (idx) {
+      idx -= 1;
+      if (events[idx].id === eventId && events[idx].name === name) {
+        return true;
+      }
+    }
+
+    idx = oneTime.length;
+    while (idx) {
+      idx -= 1;
+      if (oneTime[idx].name === name) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+}
+
+module.exports = Emitter;
