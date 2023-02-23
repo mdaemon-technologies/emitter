@@ -115,7 +115,7 @@ function Emitter() {
       idx = events.length;
       while (idx) {
         idx -= 1;
-        if (events[idx].id === 'all') {
+        if (events[idx].name === name && events[idx].id === 'all') {
           events.splice(idx, 1);
         }
       }
