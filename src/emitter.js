@@ -1,5 +1,5 @@
 /*
-*    Copyright (C) 1998-2022  MDaemon Technologies, Ltd.
+*    Copyright (C) 1998-2023  MDaemon Technologies, Ltd.
 *
 *    This library is free software; you can redistribute it and/or
 *    modify it under the terms of the GNU Lesser General Public
