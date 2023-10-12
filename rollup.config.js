@@ -1,4 +1,6 @@
 import commonjs from '@rollup/plugin-commonjs';
+import terser from '@rollup/plugin-terser';
+import pkg from './package.json';
 
 export default [
   // browser-friendly UMD build
@@ -6,21 +8,22 @@ export default [
     input: 'src/emitter.js',
     output: {
       name: 'emitter',
-      file: "dist/emitter.umd.js",
+      file: pkg.browser,
       format: 'umd'
     },
     plugins: [
-      commonjs()
+      commonjs(),
+      terser()
     ]
   },
   {
     input: 'src/emitter.js',
     output: [
-      { file: "dist/emitter.cjs", format: 'cjs', exports: "default" },
-      { file: "dist/emitter.mjs", format: 'es' }
+      { file: pkg.main, format: 'cjs', exports: "default" },
+      { file: pkg.module, format: 'es', exports: "default" }
     ],
     plugins: [
-      
+      terser()
     ]
   },
 ]
