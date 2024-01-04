@@ -25,6 +25,8 @@ function Event(name, id, func) {
   this.func = func;
 }
 
+const MAX_REGISTRATIONS = 50;
+
 function Emitter() {
   const events = [];
   const oneTime = [];
@@ -53,26 +55,24 @@ function Emitter() {
   };
 
   this.register = (name, id, func) => {
-    const eventName = name;
-    let callback = func;
-    let eventId = id;
-    if (is.func(eventId)) {
-      if (is.string(callback)) {
-        const temp = callback;
-        callback = eventId;
-        eventId = temp;
-      } else {
-        callback = id;
-        eventId = 'all';
-      }
-    }
-
-    if (!eventName) {
+    if (!name) {
       return;
     }
 
-    const idx = getEventIndex(eventName, eventId);
-    const ev = new Event(eventName, eventId, callback);
+    let callback = func;
+    if (is.func(id)) {
+      if (is.string(callback)) {
+        const temp = callback;
+        callback = id;
+        id = temp;
+      } else {
+        callback = id;
+        id = 'all';
+      }
+    }
+
+    const idx = getEventIndex(name, id);
+    const ev = new Event(name, id, callback);
     if (idx === -1) {
       events.push(ev);
     } else {
@@ -103,15 +103,14 @@ function Emitter() {
   };
 
   this.unregister = (name, id) => {
-    const eventId = !id ? 'all' : id;
-
     if (!name) {
       return;
     }
 
+    id = !id ? 'all' : id;
     let idx = 0;
 
-    if (eventId === 'all') {
+    if (id === 'all') {
       idx = events.length;
       while (idx) {
         idx -= 1;
@@ -174,12 +173,12 @@ function Emitter() {
   };
 
   this.isRegistered = (name, id) => {
-    const eventId = !id ? 'all' : id;
+    id = !id ? 'all' : id;
 
     let idx = events.length;
     while (idx) {
       idx -= 1;
-      if (events[idx].id === eventId && events[idx].name === name) {
+      if (events[idx].id === id && events[idx].name === name) {
         return true;
       }
     }
