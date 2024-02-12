@@ -1,5 +1,10 @@
+![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmdaemon-technologies%2Femitter%2Fmain%2Fpackage.json&query=%24.version&prefix=v&style=plastic&label=npm&labelColor=%23bc3433&color=blue)
+
+[![install size](https://packagephobia.com/badge?p=@mdaemon/emitter)](https://packagephobia.com/result?p=@mdaemon/emitter)
+
 # @mdaemon/emitter, A Dependency Free event emitter library
 [ [@mdaemon/emitter on npm](https://www.npmjs.com/package/@mdaemon/emitter "npm") ]
+
 
 The "emitter" provides pub/sub options
 
