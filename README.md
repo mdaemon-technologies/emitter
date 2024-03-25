@@ -102,3 +102,8 @@ The "emitter" provides pub/sub options
 # License #
 
 Published under the [LGPL-2.1 license](https://github.com/mdaemon-technologies/event_emitter/blob/main/LICENSE "LGPL-2.1 License").
+
+Published by<br/> 
+<b>MDaemon Technologies, Ltd.<br/>
+Simple Secure Email</b><br/>
+[https://www.mdaemon.com](https://www.mdaemon.com)
