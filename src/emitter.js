@@ -20,44 +20,68 @@
 import is from "./is";
 
 /**
- * Constructs a new Event instance with the given name, id, and handler function.
+ * Constructs a new Event instance with the given name, namespace, and handler function.
  * 
  * @param {string} name - The name of the event.
- * @param {number} id - The unique ID of the event. 
+ * @param {number} namespace - The unique namespace of the event. 
  * @param {Function} func - The handler function to call when the event is emitted.
  */
-function Event(name, id, func) {
+function Event(name, namespace, func, priority) {
   this.name = name;
-  this.id = id;
+  this.namespace = namespace;
   this.func = func;
+  this.priority = is.number(priority) ? priority : 1;
 }
 
-const MAX_REGISTRATIONS = 50;
+const MAX_LISTENERS = 50;
 
 /**
  * Emitter class that handles event registration and triggering.
  * 
- * Allows registering events with a name and ID, unregistering events, 
+ * Allows registering events with a name and namespace, unregistering events, 
  * and triggering events by name to call all registered handlers.
  * Also supports one-time event handlers that are removed after being triggered once.
  */
-function Emitter() {
+function Emitter(config) {
+  const self = this;
+  this.config = {};
+  
+  Object.defineProperty(self.config, "maxListeners", {
+    value: config && typeof config.maxListeners === "number" ? config.maxListeners : MAX_LISTENERS,
+    writable: false,
+    enumerable: true
+  });
+
+  Object.defineProperty(self.config, "maxOnceListeners", {
+    value: config && typeof config.maxOnceListeners === "number" ? config.maxOnceListeners : MAX_LISTENERS,
+    writable: false,
+    enumerable: true
+  });
+
   const events = [];
   const oneTime = [];
 
+  const reachedMaxListeners = (name) => {
+    return events.filter((ev) => ev.name === name).length >= this.config.maxListeners;
+  };
+
+  const reachedMaxOnceListeners = (name) => {
+    return oneTime.filter((ev) => ev.name === name).length >= this.config.maxListeners;
+  };
+
   /**
- * Searches the events array for an event matching the given name and ID.
+ * Searches the events array for an event matching the given name and namespace.
  * 
  * @param {string} name - The name of the event to find.
- * @param {number} id - The ID of the event to find.
+ * @param {number} namespace - The namespace of the event to find.
  * 
  * @returns {number} The index of the matching event in the events array, or -1 if not found.
  */
-  const getEventIndex = (name, id) => {
+  const getEventIndex = (name, namespace) => {
     let idx = events.length;
     while (idx) {
       idx -= 1;
-      if (events[idx].name === name && events[idx].id === id) {
+      if (events[idx].name === name && events[idx].namespace === namespace) {
         return idx;
       }
     }
@@ -76,46 +100,68 @@ function Emitter() {
  */
   const getEvents = (name) => {
     const evs = [];
+    
     for (let idx = 0, iMax = events.length; idx < iMax; idx += 1) {
+      if (events[idx].name.indexOf("*") > -1 || events[idx].name.indexOf("?") > -1) {
+        let regexSearch = new RegExp(events[idx].name.replace(/\*/g, ".*"));
+        if (regexSearch.test(name)) {
+          evs.push(events[idx]);
+          continue;
+        }
+      }
+
       if (events[idx].name === name) {
         evs.push(events[idx]);
       }
     }
-
     return evs;
   };
 
+
   /**
  * Registers an event handler.
- *
- * @param {string} name - The name of the event. 
- * @param {number|Function} id - The ID of the event or the handler function if id not provided.
- * @param {Function} [func] - The handler function if provided as 3rd argument.
+ * 
+ * @param {string} name - The name of the event.
+ * @param {number|Function} namespace - The namespace of the event or the handler function if namespace not provided. 
+ * @param {Function} [callback] - The handler function if provided as 3rd argument.
+ * @param {number} [priority] - The priority of the handler used for sorting.
  */
-  this.register = (name, id, func) => {
+  this.register = (name, namespace, callback, priority) => {
     if (!name) {
       return;
     }
 
-    let callback = func;
-    if (is.func(id)) {
+    if (typeof priority !== "undefined" && !is.number(priority)) {
+      throw new Error("priority must be a number");
+    }
+
+    if (is.func(namespace)) {
       if (is.string(callback)) {
         const temp = callback;
-        callback = id;
-        id = temp;
+        callback = namespace;
+        namespace = temp;
       } else {
-        callback = id;
-        id = 'all';
+        if (is.number(callback)) {
+          priority = callback;
+        }
+        callback = namespace;
+        namespace = 'all';
       }
     }
 
-    const idx = getEventIndex(name, id);
-    const ev = new Event(name, id, callback);
+    const idx = getEventIndex(name, namespace);
+    const ev = new Event(name, namespace, callback, priority);
     if (idx === -1) {
-      events.push(ev);
+      if (reachedMaxListeners(name)) {
+        console.warn(`Max listeners reached for event ${name}`);
+      } else {
+        events.push(ev);
+      }
     } else {
       events[idx] = ev;
     }
+
+    events.sort((a, b) => a.priority === b.priority ? 0 : (a.priority < b.priority ? 1 : -1));
   };
 
   /**
@@ -144,49 +190,53 @@ function Emitter() {
     }
 
     const ev = new Event(name, '', func);
-    oneTime.push(ev);
+    if (reachedMaxOnceListeners(name)) {
+      console.warn(`Max once listeners reached for event ${name}`);
+    } else {
+      oneTime.push(ev);
+    }
   };
 
   /**
  * Registers multiple event handlers based on keys of an object.
  * 
- * @param {string} id - The event identifier.
+ * @param {string} namespace - The event identifier.
  * @param {Object} obj - An object whose keys are event names and values are callbacks.
  */
-  this.onMany = (id, obj) => {
+  this.onMany = ( namespace, obj) => {
     if (!obj) {
       return;
     }
 
     Object.keys(obj).forEach((key) => {
-      this.on(key, id, obj[key]);
+      this.on(key, namespace, obj[key]);
     });
   };
 
   /**
- * Unregisters an event handler based on the name and ID.
+ * Unregisters an event handler based on the name and namespace.
  * 
- * Accepts the event name and optional ID. The ID defaults to 'all'.
- * Finds the matching event handler by name and ID and removes it from the events array.
- * If ID is 'all', removes all handlers for that event name.
+ * Accepts the event name and optional namespace. The namespace defaults to 'all'.
+ * Finds the matching event handler by name and namespace and removes it from the events array.
+ * If namespace is 'all', removes all handlers for that event name.
  * Also removes matching one-time handlers from the oneTime array.
  * 
  * @param {string} name - The name of the event. 
- * @param {string} [id] - The ID of the handler. Defaults to 'all'.
+ * @param {string} [namespace] - The namespace of the handler. Defaults to 'all'.
  */
-  this.unregister = (name, id) => {
+  this.unregister = (name, namespace) => {
     if (!name) {
       return;
     }
 
-    id = !id ? 'all' : id;
+   namespace = !namespace ? 'all' : namespace;
     let idx = 0;
 
-    if (id === 'all') {
+    if (namespace === 'all') {
       idx = events.length;
       while (idx) {
         idx -= 1;
-        if (events[idx].name === name && events[idx].id === 'all') {
+        if (events[idx].name === name && events[idx].namespace === 'all') {
           events.splice(idx, 1);
         }
       }
@@ -202,7 +252,7 @@ function Emitter() {
       return;
     }
 
-    idx = getEventIndex(name, id);
+    idx = getEventIndex(name, namespace);
     if (idx !== -1) {
       events.splice(idx, 1);
     }
@@ -218,16 +268,36 @@ function Emitter() {
   this.unsubscribe = this.unregister;
 
   /**
- * Removes all event handlers with the given ID from the events array.
+ * Removes all event handlers with the given namespace from the events array.
  * Loops through the events array backwards, splicing out any handlers
- * that match the given ID.
+ * that match the given namespace.
  */
-  this.offAll = (id) => {
+  this.offAll = (namespace) => {
     let idx = events.length;
     while (idx) {
       idx -= 1;
-      if (events[idx].id === id) {
+      if (events[idx].namespace === namespace) {
         events.splice(idx, 1);
+      }
+    }
+  };
+
+  const triggerOneTime = (name, data) => {
+    let idx = oneTime.length;
+    while (idx) {
+      idx -= 1;
+      if (oneTime[idx].name.indexOf("*") > -1 || oneTime[idx].name.indexOf("?") > -1) {
+        let regexSearch = new RegExp(oneTime[idx].name.replace(/\*/g, ".*").replace(/\?/g, "."));
+        if (regexSearch.test(name)) {
+          oneTime[idx].func(data, name);
+          oneTime.splice(idx, 1);
+          continue;
+        }
+      }
+
+      if (oneTime[idx].name === name) {
+        oneTime[idx].func(data, name);
+        oneTime.splice(idx, 1);
       }
     }
   };
@@ -243,14 +313,7 @@ function Emitter() {
       evs[idx].func(data, name);
     }
 
-    let idx = oneTime.length;
-    while (idx) {
-      idx -= 1;
-      if (oneTime[idx].name === name) {
-        oneTime[idx].func(data, name);
-        oneTime.splice(idx, 1);
-      }
-    }
+    triggerOneTime(name, data);
   };
 
   /**
@@ -272,19 +335,19 @@ function Emitter() {
   };
 
   /**
- * Checks if the given event name and ID are registered.
+ * Checks if the given event name and namespace are registered.
  * 
  * @param {string} name - The event name
- * @param {string} [id='all'] - The event ID. Omit for all events of the given name.
- * @returns {boolean} True if an event with the given name and ID is registered.
+ * @param {string} [ namespace='all'] - The event namespace. Omit for all events of the given name.
+ * @returns {boolean} True if an event with the given name and namespace is registered.
  */
-  this.isRegistered = (name, id) => {
-    id = !id ? 'all' : id;
+  this.isRegistered = (name, namespace) => {
+    namespace = !namespace ? 'all' : namespace;
 
     let idx = events.length;
     while (idx) {
       idx -= 1;
-      if (events[idx].id === id && events[idx].name === name) {
+      if (events[idx].namespace === namespace && events[idx].name === name) {
         return true;
       }
     }
@@ -300,5 +363,9 @@ function Emitter() {
     return false;
   };
 }
+
+Emitter.HIGH_PRIORITY = 2;
+Emitter.NORMAL_PRIORITY = 1;
+Emitter.LOW_PRIORITY = 0;
 
 export default Emitter;

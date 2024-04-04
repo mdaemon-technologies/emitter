@@ -1,4 +1,7 @@
 const Emitter = require("../dist/emitter.cjs");
+const HIGH_PRIORITY = Emitter.HIGH_PRIORITY;
+const NORMAL_PRIORITY = Emitter.NORMAL_PRIORITY;
+const LOW_PRIORITY = Emitter.LOW_PRIORITY;
 
 describe("Emitter tests", () => {
   let emitter = new Emitter();
@@ -237,6 +240,43 @@ describe("Emitter tests", () => {
       expect(emitter.isRegistered("test14")).toBe(false);
       expect(emitter.isRegistered("test15")).toBe(false);
       expect(emitter.isRegistered("test16", "testID")).toBe(false);
+    });
+  });
+
+  describe("Emitter accepts a config object with maxListeners and maxOnceListeners properties", () => {
+    let emitterTest = new Emitter({ maxListeners: 10, maxOnceListeners: 100 });
+    it("is an object", () => {
+      expect(typeof emitterTest.config).toBe("object");
+      expect(emitterTest.config.maxListeners).toBe(10);
+      expect(emitterTest.config.maxOnceListeners).toBe(100);
+    });
+  });
+
+  describe("Emitter has a priority option in each Event", () => {
+    let emitterTest = new Emitter();
+    it("is the last parameter when registering an event and defaults to NORMAL_PRIORITY. Test2 will occur before Test1", () => {
+      let test1Time = null;
+      let test2Time = null;
+      emitterTest.on("test", "LOW", () => {
+        test1Time = new Date().getTime();
+        expect(test2Time).not.toBe(null);
+        console.log("Test1: " + test1Time);
+        console.log("Test2: " + test2Time);
+        expect(test2Time <= test1Time).toBe(true);
+      }, LOW_PRIORITY);
+      emitterTest.on("test", "NORMAL", () => {
+        test2Time = new Date().getTime();
+        expect(test1Time).toBe(null);
+      });
+      emitterTest.on("test", "HIGH", () => {
+        expect(test1Time).toBe(null);
+        expect(test2Time).toBe(null);
+      }, HIGH_PRIORITY);
+      
+      emitterTest.emit("test");
+      emitterTest.off("test", "LOW");
+      emitterTest.off("test", "NORMAL");
+      emitterTest.off("test", "HIGH");
     });
   });
 });

@@ -39,7 +39,11 @@ The "emitter" provides pub/sub options
      * }
      */
 
-    const emitter = new Emitter();
+    // maxListeners and maxOnceListeners default to 50 and are immutable once set
+    const emitter = new Emitter({
+        maxListeners: 20,
+        maxOnceListeners: 40
+    });
 
     emitter.on("test", "namespace", (input) => {
         console.log(input); 
@@ -97,6 +101,21 @@ The "emitter" provides pub/sub options
 
     emitter.emit("test", "nothing will be logged");
 
+    // a priority property can be added to the end of the paramters
+    emitter.on("test3", "namespace", () => {
+        console.log("this will be logged last");
+    }, Emitter.LOW_PRIORITY);
+
+    emitter.on("test3", "namespace", () => {
+        console.log("this will be logged first");
+    }, Emitter.HIGH_PRIORITY);
+
+    emitter.emit("test3");
+    // this will be logged first
+    // this will be logged last
+
+    // once registrations do not have a priority, because the event will only execute once
+    
 ```
 
 # License #
