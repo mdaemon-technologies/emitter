@@ -1,1 +1,0 @@
-declare module '@mdaemon/emitter/dist/emitter.cjs';

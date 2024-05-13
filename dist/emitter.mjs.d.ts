@@ -1,1 +1,1 @@
-declare module '@mdaemon/emitter/dist/emitter.mjs';
+declare module '@mdaemon/emitter/dist/emitter.mjs'

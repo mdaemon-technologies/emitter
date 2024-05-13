@@ -1,1 +1,1 @@
-declare module '@mdaemon/emitter/dist/emitter.umd.js';
+declare module '@mdaemon/emitter/dist/emitter.umd.js'
