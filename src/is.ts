@@ -18,35 +18,35 @@
 */
 
 const is = (function () {
-  var isObject = function (val) {
+  var isObject = function (val: any) {
     return typeof val === "object" && val !== null && !Array.isArray(val);
   };
 
-  var isString = function (str) {
+  var isString = function (str: any) {
     return typeof str === "string";
   };
 
-  var isArray = function (arr) {
+  var isArray = function (arr: any) {
     return Array.isArray(arr);
   };
 
-  var isBoolean = function (bool) {
+  var isBoolean = function (bool: any) {
     return typeof bool === "boolean";
   };
 
-  var isNumber = function (num) {
+  var isNumber = function (num: any) {
     return typeof num === "number";
   };
 
-  var isFunction = function (func) {
+  var isFunction = function (func: any) {
     return typeof func === "function";
   };
 
-  var isNull = function (val) {
+  var isNull = function (val: any) {
     return val === null;
   };
 
-  var isUndefined = function (val) {
+  var isUndefined = function (val: any) {
     return val === undefined || typeof val === "undefined";
   };
 
