@@ -253,7 +253,7 @@ class Emitter {
  * @param {string} name - The name of the event. 
  * @param {string} namespace - The namespace of the handler. Defaults to 'all'.
  */
-  unregister = (name: string, namespace?: string) => {
+  unregister = (name: string, namespace: string = "all") => {
     if (!name) {
       return;
     }
