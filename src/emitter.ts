@@ -56,8 +56,8 @@ interface IMany {
 /**
  * Emitter class that handles event registration and triggering.
  * 
- * Allows registering events with a name and namespace, unregistering events, 
- * and triggering events by name to call all registered handlers.
+ * Allows registering _emitter_events with a name and namespace, unregistering _emitter_events, 
+ * and triggering _emitter_events by name to call all registered handlers.
  * Also supports one-time event handlers that are removed after being triggered once.
  */
 class Emitter {
@@ -65,44 +65,48 @@ class Emitter {
   static NORMAL_PRIORITY = 1;
   static LOW_PRIORITY = 0;
   
-  private config: IEmitterConfig;
-  private events: IEvent[] = [];
-  private oneTime: IEvent[] = [];
+  private _emitter_config: IEmitterConfig;
+  private _emitter_events: IEvent[] = [];
+  private _emitter_oneTime: IEvent[] = [];
   
   constructor(config?: IEmitterConfig) {
     const self = this;
     if (!config) {
-      this.config = {
+      this._emitter_config = {
         maxListeners: MAX_LISTENERS,
         maxOnceListeners: MAX_LISTENERS
       };
     }
     else {
-      this.config = config;
+      this._emitter_config = config;
     }
   }
 
+  get config() {
+    return this._emitter_config;
+  }
+
   private reachedMaxListeners = (name: string) => {
-    return this.events.filter((ev) => ev.name === name).length >= this.config.maxListeners;
+    return this._emitter_events.filter((ev) => ev.name === name).length >= this._emitter_config.maxListeners;
   };
 
   private reachedMaxOnceListeners = (name: string) => {
-    return this.oneTime.filter((ev) => ev.name === name).length >= this.config.maxListeners;
+    return this._emitter_oneTime.filter((ev) => ev.name === name).length >= this._emitter_config.maxListeners;
   };
 
   /**
- * Searches the events array for an event matching the given name and namespace.
+ * Searches the _emitter_events array for an event matching the given name and namespace.
  * 
  * @param {string} name - The name of the event to find.
  * @param {number} namespace - The namespace of the event to find.
  * 
- * @returns {number} The index of the matching event in the events array, or -1 if not found.
+ * @returns {number} The index of the matching event in the _emitter_events array, or -1 if not found.
  */
   private getEventIndex = (name: string, namespace: string) => {
-    let idx = this.events.length;
+    let idx = this._emitter_events.length;
     while (idx) {
       idx -= 1;
-      if (this.events[idx].name === name && this.events[idx].namespace === namespace) {
+      if (this._emitter_events[idx].name === name && this._emitter_events[idx].namespace === namespace) {
         return idx;
       }
     }
@@ -111,28 +115,28 @@ class Emitter {
   };
 
   /**
- * Gets all events with the given name.
+ * Gets all _emitter_events with the given name.
  * 
- * Loops through the events array and collects any 
- * events that match the provided name.
+ * Loops through the _emitter_events array and collects any 
+ * _emitter_events that match the provided name.
  * 
- * @param {string} name - The name of the events to get.
- * @returns {Event[]} The array of matching events.
+ * @param {string} name - The name of the _emitter_events to get.
+ * @returns {Event[]} The array of matching _emitter_events.
  */
   getEvents = (name: string) => {
     const evs: IEvent[] = [];
     
-    for (let idx = 0, iMax = this.events.length; idx < iMax; idx += 1) {
-      if (this.events[idx].name.indexOf("*") > -1 || this.events[idx].name.indexOf("?") > -1) {
-        let regexSearch = new RegExp(this.events[idx].name.replace(/\*/g, ".*"));
+    for (let idx = 0, iMax = this._emitter_events.length; idx < iMax; idx += 1) {
+      if (this._emitter_events[idx].name.indexOf("*") > -1 || this._emitter_events[idx].name.indexOf("?") > -1) {
+        let regexSearch = new RegExp(this._emitter_events[idx].name.replace(/\*/g, ".*"));
         if (regexSearch.test(name)) {
-          evs.push(this.events[idx]);
+          evs.push(this._emitter_events[idx]);
           continue;
         }
       }
 
-      if (this.events[idx].name === name) {
-        evs.push(this.events[idx]);
+      if (this._emitter_events[idx].name === name) {
+        evs.push(this._emitter_events[idx]);
       }
     }
     return evs;
@@ -184,13 +188,13 @@ class Emitter {
       if (this.reachedMaxListeners(name)) {
         console.warn(`Max listeners reached for event ${name}`);
       } else {
-        this.events.push(ev);
+        this._emitter_events.push(ev);
       }
     } else {
-      this.events[idx] = ev;
+      this._emitter_events[idx] = ev;
     }
 
-    this.events.sort((a, b) => a.priority === b.priority ? 0 : (a.priority < b.priority ? 1 : -1));
+    this._emitter_events.sort((a, b) => a.priority === b.priority ? 0 : (a.priority < b.priority ? 1 : -1));
   };
 
   /**
@@ -207,7 +211,7 @@ class Emitter {
  * Registers a one-time event handler.
  * 
  * Accepts the event name and callback function. 
- * Creates a new Event instance and adds it to the oneTime array.
+ * Creates a new Event instance and adds it to the _emitter_oneTime array.
  * The event will be removed after it is emitted once.
  * 
  * @param {string} name - The name of the event.
@@ -222,7 +226,7 @@ class Emitter {
     if (this.reachedMaxOnceListeners(name)) {
       console.warn(`Max once listeners reached for event ${name}`);
     } else {
-      this.oneTime.push(ev);
+      this._emitter_oneTime.push(ev);
     }
   };
 
@@ -246,9 +250,9 @@ class Emitter {
  * Unregisters an event handler based on the name and namespace.
  * 
  * Accepts the event name and optional namespace. The namespace defaults to 'all'.
- * Finds the matching event handler by name and namespace and removes it from the events array.
+ * Finds the matching event handler by name and namespace and removes it from the _emitter_events array.
  * If namespace is 'all', removes all handlers for that event name.
- * Also removes matching one-time handlers from the oneTime array.
+ * Also removes matching one-time handlers from the _emitter_oneTime array.
  * 
  * @param {string} name - The name of the event. 
  * @param {string} namespace - The namespace of the handler. Defaults to 'all'.
@@ -262,19 +266,19 @@ class Emitter {
     let idx = 0;
 
     if (namespace === 'all') {
-      idx = this.events.length;
+      idx = this._emitter_events.length;
       while (idx) {
         idx -= 1;
-        if (this.events[idx].name === name && this.events[idx].namespace === 'all') {
-          this.events.splice(idx, 1);
+        if (this._emitter_events[idx].name === name && this._emitter_events[idx].namespace === 'all') {
+          this._emitter_events.splice(idx, 1);
         }
       }
 
-      idx = this.oneTime.length;
+      idx = this._emitter_oneTime.length;
       while (idx) {
         idx -= 1;
-        if (this.oneTime[idx].name === name) {
-          this.oneTime.splice(idx, 1);
+        if (this._emitter_oneTime[idx].name === name) {
+          this._emitter_oneTime.splice(idx, 1);
         }
       }
 
@@ -283,7 +287,7 @@ class Emitter {
 
     idx = this.getEventIndex(name, namespace);
     if (idx !== -1) {
-      this.events.splice(idx, 1);
+      this._emitter_events.splice(idx, 1);
     }
   };
 
@@ -297,36 +301,36 @@ class Emitter {
   unsubscribe = this.unregister;
 
   /**
- * Removes all event handlers with the given namespace from the events array.
- * Loops through the events array backwards, splicing out any handlers
+ * Removes all event handlers with the given namespace from the _emitter_events array.
+ * Loops through the _emitter_events array backwards, splicing out any handlers
  * that match the given namespace.
  */
   offAll = (namespace: string) => {
-    let idx = this.events.length;
+    let idx = this._emitter_events.length;
     while (idx) {
       idx -= 1;
-      if (this.events[idx].namespace === namespace) {
-        this.events.splice(idx, 1);
+      if (this._emitter_events[idx].namespace === namespace) {
+        this._emitter_events.splice(idx, 1);
       }
     }
   };
 
   triggerOneTime = (name: string, data: any) => {
-    let idx = this.oneTime.length;
+    let idx = this._emitter_oneTime.length;
     while (idx) {
       idx -= 1;
-      if (this.oneTime[idx].name.indexOf("*") > -1 || this.oneTime[idx].name.indexOf("?") > -1) {
-        let regexSearch = new RegExp(this.oneTime[idx].name.replace(/\*/g, ".*").replace(/\?/g, "."));
+      if (this._emitter_oneTime[idx].name.indexOf("*") > -1 || this._emitter_oneTime[idx].name.indexOf("?") > -1) {
+        let regexSearch = new RegExp(this._emitter_oneTime[idx].name.replace(/\*/g, ".*").replace(/\?/g, "."));
         if (regexSearch.test(name)) {
-          this.oneTime[idx].func(data, name);
-          this.oneTime.splice(idx, 1);
+          this._emitter_oneTime[idx].func(data, name);
+          this._emitter_oneTime.splice(idx, 1);
           continue;
         }
       }
 
-      if (this.oneTime[idx].name === name) {
-        this.oneTime[idx].func(data, name);
-        this.oneTime.splice(idx, 1);
+      if (this._emitter_oneTime[idx].name === name) {
+        this._emitter_oneTime[idx].func(data, name);
+        this._emitter_oneTime.splice(idx, 1);
       }
     }
   };
@@ -367,24 +371,24 @@ class Emitter {
  * Checks if the given event name and namespace are registered.
  * 
  * @param {string} name - The event name
- * @param {string} [ namespace='all'] - The event namespace. Omit for all events of the given name.
+ * @param {string} [ namespace='all'] - The event namespace. Omit for all _emitter_events of the given name.
  * @returns {boolean} True if an event with the given name and namespace is registered.
  */
   isRegistered = (name: string, namespace?: string) => {
     namespace = !namespace ? 'all' : namespace;
 
-    let idx = this.events.length;
+    let idx = this._emitter_events.length;
     while (idx) {
       idx -= 1;
-      if (this.events[idx].namespace === namespace && this.events[idx].name === name) {
+      if (this._emitter_events[idx].namespace === namespace && this._emitter_events[idx].name === name) {
         return true;
       }
     }
 
-    idx = this.oneTime.length;
+    idx = this._emitter_oneTime.length;
     while (idx) {
       idx -= 1;
-      if (this.oneTime[idx].name === name) {
+      if (this._emitter_oneTime[idx].name === name) {
         return true;
       }
     }
