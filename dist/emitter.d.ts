@@ -1,5 +1,3 @@
-export = Emitter;
-
 declare class Emitter {
   register(name: string, namespace: ((data: any) => any) | string, arg2?: ((data: any) => any), arg3?: number): void;
   on(name: string, namespace: string | ((data: any) => any), arg2?: ((data: any) => any), arg3?: number): void;
@@ -16,3 +14,5 @@ declare class Emitter {
   propagate(data: any, name: string): void;
   isRegistered(name: string, namespace: string): boolean;
 }
+
+export default Emitter;
