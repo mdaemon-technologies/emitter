@@ -13,6 +13,9 @@ declare class Emitter {
   publish(name: string, data?: any): void;
   propagate(data: any, name: string): void;
   isRegistered(name: string, namespace: string): boolean;
+  static LOW_PRIORITY: number;
+  static NORMAL_PRIORITY: number;
+  static HIGH_PRIORITY: number;
 }
 
 export default Emitter;
