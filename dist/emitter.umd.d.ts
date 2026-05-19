@@ -1,1 +1,3 @@
-declare module '@mdaemon/emitter/dist/emitter.umd.js'
+import Emitter from './emitter';
+export default Emitter;
+export { Callback, IEmitterConfig, IEvent } from './emitter';
