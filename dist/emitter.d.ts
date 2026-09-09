@@ -1,8 +1,13 @@
 type Callback = (...args: any) => void;
 
+type WarningHandler = (message: string) => void;
+type ErrorHandler = (error: any, name: string) => void;
+
 interface IEmitterConfig {
-  maxListeners: number;
-  maxOnceListeners: number;
+  readonly maxListeners: number;
+  readonly maxOnceListeners: number;
+  readonly onWarning: WarningHandler;
+  readonly onError: ErrorHandler;
 }
 
 interface IEvent {
@@ -13,7 +18,7 @@ interface IEvent {
 }
 
 declare class Emitter {
-  constructor(config?: IEmitterConfig);
+  constructor(config?: Partial<IEmitterConfig>);
   readonly config: IEmitterConfig;
   getEvents(name: string): IEvent[];
   register(name: string, func: Callback, priority?: number): void;
@@ -26,6 +31,7 @@ declare class Emitter {
   subscribe(name: string, namespace: string, func: Callback, priority?: number): void;
   subscribe(name: string, func: Callback, namespace: string): void;
   once(name: string, func: Callback): void;
+  once(name: string, namespace: string, func: Callback): void;
   onMany(namespace: string, obj: { [key: string]: Callback }): void;
   unregister(name: string, namespace?: string): void;
   off(name: string, namespace?: string): void;
@@ -43,4 +49,4 @@ declare class Emitter {
 }
 
 export default Emitter;
-export { Callback, IEmitterConfig, IEvent };
+export { Callback, IEmitterConfig, IEvent, WarningHandler, ErrorHandler };

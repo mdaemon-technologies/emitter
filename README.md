@@ -44,10 +44,17 @@ import Emitter from "@mdaemon/emitter/dist/emitter.mjs";
  * }
  */
 
-// maxListeners and maxOnceListeners default to 50 and are immutable once set
+// every option may be omitted, and the config is frozen once set
 const emitter = new Emitter({
-    maxListeners: 20,
-    maxOnceListeners: 40
+    maxListeners: 20,     // defaults to 50
+    maxOnceListeners: 40, // defaults to 50
+
+    // called when a limit is reached and a handler is turned away.
+    // defaults to console.warn
+    onWarning: (message) => { console.warn(message); },
+
+    // called when a handler throws. defaults to console.error
+    onError: (error, name) => { console.error(name, error); }
 });
 
 emitter.on("test", "namespace", (input) => {
@@ -69,6 +76,28 @@ emitter.on("test", (input) => {
 emitter.emit("test", "calling all");
 // calling all this gets called
 
+// registering more than once against the same name and namespace keeps every
+// handler, and they are called in priority order
+emitter.on("queued", "namespace", () => { console.log("first"); });
+emitter.on("queued", "namespace", () => { console.log("second"); });
+
+emitter.emit("queued");
+// first
+// second
+
+// off removes every handler for that name and namespace
+emitter.off("queued", "namespace");
+
+// event names may contain wildcards: "*" matches any run of characters and
+// "?" matches exactly one. The whole name has to match, so "user.*" matches
+// "user.created" but not "superuser.created"
+emitter.on("user.*", (input, name) => {
+    console.log(name, input);
+});
+
+emitter.emit("user.created", "a new user");
+// user.created a new user
+
 // your flavor of pub/sub may vary
 // emitter.register === emitter.on === emitter.subscribe 
 // emitter.unregister === emitter.off === emitter.unsubscribe
@@ -80,6 +109,31 @@ emitter.once("only-receive-this-once", (input) => {
 
 emitter.trigger("only-receive-this-once", "this was received once, and then removed from memory");
 // this was received once, and then removed from memory
+
+// once also accepts a namespace, so a one-time handler can be cleaned up
+// before it ever fires
+emitter.once("may-never-happen", "namespace", (input) => {
+    console.log(input);
+});
+
+emitter.offAll("namespace");
+
+// a handler that throws is reported to onError and does not stop the
+// handlers that come after it, or surface at the emit call
+emitter.on("risky", () => { throw new Error("this is contained"); });
+emitter.on("risky", () => { console.log("this still runs"); });
+
+emitter.emit("risky");
+// risky Error: this is contained    <- from onError
+// this still runs
+
+// registering without a function throws, rather than failing later on emit
+try {
+    emitter.on("oops", "namespace");
+} catch (e) {
+    console.log(e.message);
+    // The handler registered for event oops must be a function
+}
 
 // onMany allows you to register/subscribe multiple items at once
 emitter.onMany("namespace", {
