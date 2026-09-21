@@ -1,7 +1,7 @@
 {
   "name": "@mdaemon/emitter",
   "type": "module",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A basic event emitter / publish subscribe library used by MDaemon Webmail",
   "main": "dist/emitter.umd.js",
   "module": "dist/emitter.mjs",
@@ -35,6 +35,9 @@
     "url": "https://www.mdaemon.com"
   },
   "license": "LGPL-2.1",
+  "engines": {
+    "node": ">=18"
+  },
   "bugs": {
     "url": "https://github.com/mdaemon-technologies/emitter/issues"
   },

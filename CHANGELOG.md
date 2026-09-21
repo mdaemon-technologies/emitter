@@ -5,11 +5,59 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - unreleased
+## [3.0.0] - 2026-09-09
 
 A correctness pass over the emitter. Several of these change observable
 behaviour, so this is a breaking release. Every fix below has a regression test
 in `src/emitter.test.ts`.
+
+### Added
+
+- `onWarning(message)` config option, called when a listener is turned away for
+  exceeding a limit. Defaults to `console.warn`. Previously the limit was
+  enforced silently apart from a hard-coded console warning, with no way for a
+  caller to observe it.
+- `onError(error, name)` config option, called when a handler throws. Defaults
+  to `console.error`.
+- `once(name, namespace, func)`, so a one-time handler can be scoped and cleaned
+  up by `unregister` or `offAll` before it fires.
+- Wildcard matching and the multiple-handler semantics are now documented in the
+  README.
+
+### Changed
+
+- **BREAKING:** Registering more than once against the same name and namespace
+  now keeps every handler instead of replacing the previous one. Handlers that
+  were previously replaced now accumulate toward `maxListeners`; a caller that
+  re-subscribes on every render will reach the limit where it previously stayed
+  at one listener.
+- **BREAKING:** Registering without a function now throws a `TypeError` at the
+  call site. Previously the registration was accepted and failed later, during
+  an unrelated `trigger`, with `evs[idx].func is not a function`.
+- **BREAKING:** Exceptions thrown by handlers no longer propagate out of
+  `trigger`. Code wrapping `trigger` in `try`/`catch` to observe handler errors
+  should use the `onError` option instead.
+- **BREAKING:** `emitter.config` is frozen. Assigning to one of its fields is
+  ignored in sloppy mode and throws in strict mode.
+- **BREAKING:** `unregister(name)` removes one-time handlers in the `'all'`
+  namespace rather than every one-time handler with that name. Handlers
+  registered through `once(name, namespace, func)` are removed by passing that
+  namespace, or by `offAll`.
+- One-time handlers fire in registration order. They previously fired in reverse
+  registration order, as a side effect of the loop that removed them.
+- `IEmitterConfig` fields are declared `readonly`, so mutation is now a
+  compile-time error as well as a runtime no-op.
+- A name's matcher is compiled once at registration instead of being rebuilt for
+  every registered listener on every emit.
+- The wildcard matching that had been duplicated between `getEvents` and
+  `triggerOneTime` (and had drifted apart, causing the `?` bug) is now a single
+  `EmitterEvent.matches`.
+- The two near-identical listener-limit checks, whose copy-paste caused the
+  `maxOnceListeners` bug, are now one `reachedMax` helper that takes the limit
+  as an argument.
+- The `Event` constructor function, which shadowed the DOM global and duplicated
+  the `IEvent` shape, is now `class EmitterEvent implements IEvent`. The source
+  type-checks cleanly under `--strict`, which previously reported six errors.
 
 ### Fixed
 
@@ -58,56 +106,11 @@ in `src/emitter.test.ts`.
   `'all'` removed every handler for an event name. `'all'` is the default
   namespace, not a wildcard.
 
-### Added
-
-- `onWarning(message)` config option, called when a listener is turned away for
-  exceeding a limit. Defaults to `console.warn`. Previously the limit was
-  enforced silently apart from a hard-coded console warning, with no way for a
-  caller to observe it.
-- `onError(error, name)` config option, called when a handler throws. Defaults
-  to `console.error`.
-- `once(name, namespace, func)`, so a one-time handler can be scoped and cleaned
-  up by `unregister` or `offAll` before it fires.
-- Wildcard matching and the multiple-handler semantics are now documented in the
-  README.
+## [2.0.0] - 2024-09-12
 
 ### Changed
 
-- **Breaking.** Registering more than once against the same name and namespace
-  now keeps every handler instead of replacing the previous one. Handlers that
-  were previously replaced now accumulate toward `maxListeners`; a caller that
-  re-subscribes on every render will reach the limit where it previously stayed
-  at one listener.
-- **Breaking.** Registering without a function now throws a `TypeError` at the
-  call site. Previously the registration was accepted and failed later, during
-  an unrelated `trigger`, with `evs[idx].func is not a function`.
-- **Breaking.** Exceptions thrown by handlers no longer propagate out of
-  `trigger`. Code wrapping `trigger` in `try`/`catch` to observe handler errors
-  should use the `onError` option instead.
-- **Breaking.** `emitter.config` is frozen. Assigning to one of its fields is
-  ignored in sloppy mode and throws in strict mode.
-- **Breaking.** `unregister(name)` removes one-time handlers in the `'all'`
-  namespace rather than every one-time handler with that name. Handlers
-  registered through `once(name, namespace, func)` are removed by passing that
-  namespace, or by `offAll`.
-- One-time handlers fire in registration order. They previously fired in reverse
-  registration order, as a side effect of the loop that removed them.
-- `IEmitterConfig` fields are declared `readonly`, so mutation is now a
-  compile-time error as well as a runtime no-op.
+- Converted to TypeScript and ES6 modules.
 
-### Performance
-
-- A name's matcher is compiled once at registration instead of being rebuilt for
-  every registered listener on every emit.
-
-### Internal
-
-- The wildcard matching that had been duplicated between `getEvents` and
-  `triggerOneTime` (and had drifted apart, causing the `?` bug) is now a single
-  `EmitterEvent.matches`.
-- The two near-identical listener-limit checks, whose copy-paste caused the
-  `maxOnceListeners` bug, are now one `reachedMax` helper that takes the limit
-  as an argument.
-- The `Event` constructor function, which shadowed the DOM global and duplicated
-  the `IEvent` shape, is now `class EmitterEvent implements IEvent`. The source
-  type-checks cleanly under `--strict`, which previously reported six errors.
+[3.0.0]: https://www.npmjs.com/package/@mdaemon/emitter/v/3.0.0
+[2.0.0]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.0

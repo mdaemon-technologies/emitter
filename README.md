@@ -1,32 +1,34 @@
-# @mdaemon/emitter, A Dependency Free event emitter library
-[![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmdaemon-technologies%2Femitter%2Fmain%2Fpackage.json&query=%24.version&prefix=v&label=npm&color=blue)](https://www.npmjs.com/package/@mdaemon/emitter) [![Static Badge](https://img.shields.io/badge/node-v18%2B-blue?style=flat&label=node&color=blue)](https://nodejs.org) [![install size](https://packagephobia.com/badge?p=@mdaemon/emitter)](https://packagephobia.com/result?p=@mdaemon/emitter) [![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmdaemon-technologies%2Femitter%2Fmain%2Fpackage.json&query=%24.license&prefix=v&label=license&color=green)](https://github.com/mdaemon-technologies/emitter/blob/main/LICENSE) [![Node.js CI](https://github.com/mdaemon-technologies/emitter/actions/workflows/node.js.yml/badge.svg)](https://github.com/mdaemon-technologies/emitter/actions/workflows/node.js.yml)
+# @mdaemon/emitter
 
-[ [@mdaemon/emitter on npm](https://www.npmjs.com/package/@mdaemon/emitter "npm") ]
+[![npm](https://img.shields.io/npm/v/@mdaemon/emitter?color=blue)](https://www.npmjs.com/package/@mdaemon/emitter)
+[![license](https://img.shields.io/npm/l/@mdaemon/emitter?color=green)](LICENSE)
+[![node](https://img.shields.io/node/v/@mdaemon/emitter)](https://nodejs.org)
+[![install size](https://packagephobia.com/badge?p=@mdaemon/emitter)](https://packagephobia.com/result?p=@mdaemon/emitter)
+[![CI](https://github.com/mdaemon-technologies/emitter/actions/workflows/node.js.yml/badge.svg)](https://github.com/mdaemon-technologies/emitter/actions/workflows/node.js.yml)
 
-## Version 2.0.0
-Converted to TypeScript and ES6 modules
+A basic event emitter / publish subscribe library used by MDaemon Webmail
 
-The "emitter" provides pub/sub options
+A dependency free event emitter library. The "emitter" provides pub/sub options
 
 ## Install
 
-```cmd
-$ npm install @mdaemon/emitter --save
+```bash
+npm install @mdaemon/emitter
 ```
 
 ## Usage
 
-### Node CommonJS
+### ES modules
 ```js
-const Emitter = require("@mdaemon/emitter/dist/emitter.cjs");
+import Emitter from "@mdaemon/emitter";
 ```
 
-### Node Modules
+### CommonJS
 ```js
-import Emitter from "@mdaemon/emitter/dist/emitter.mjs";
+const Emitter = require("@mdaemon/emitter");
 ```
 
-### Web
+### Browser (UMD)
 ```html
 <script type="text/javascript" src="/path_to_modules/dist/emitter.umd.js">
 ```
@@ -176,11 +178,14 @@ emitter.emit("test3");
 // once registrations do not have a priority, because the event will only execute once
 ```
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
-Published under the [LGPL-2.1 license](https://github.com/mdaemon-technologies/event_emitter/blob/main/LICENSE "LGPL-2.1 License").
+Published under the [LGPL-2.1](LICENSE) license.
 
-Published by<br/> 
-<b>MDaemon Technologies, Ltd.<br/>
-Simple Secure Email</b><br/>
+Published by **MDaemon Technologies, Ltd.**  
+Simple Secure Email  
 [https://www.mdaemon.com](https://www.mdaemon.com)
