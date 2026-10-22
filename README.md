@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@mdaemon/emitter?color=blue)](https://www.npmjs.com/package/@mdaemon/emitter)
 [![license](https://img.shields.io/npm/l/@mdaemon/emitter?color=green)](LICENSE)
 [![node](https://img.shields.io/node/v/@mdaemon/emitter)](https://nodejs.org)
-[![install size](https://packagephobia.com/badge?p=@mdaemon/emitter)](https://packagephobia.com/result?p=@mdaemon/emitter)
+[![install size](https://img.shields.io/npm/unpacked-size/@mdaemon/emitter)](https://packagephobia.com/result?p=@mdaemon/emitter)
 [![CI](https://github.com/mdaemon-technologies/emitter/actions/workflows/node.js.yml/badge.svg)](https://github.com/mdaemon-technologies/emitter/actions/workflows/node.js.yml)
 
 A basic event emitter / publish subscribe library used by MDaemon Webmail
