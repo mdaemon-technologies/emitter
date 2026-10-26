@@ -53,11 +53,6 @@ const HIGH_PRIORITY = 2;
 const NORMAL_PRIORITY = 1;
 const LOW_PRIORITY = 0;
 
-/* Characters that carry meaning inside a regular expression and therefore have
- * to be escaped when an event name is compiled into a matcher. "*" and "?" are
- * deliberately absent: those are the wildcards this library supports. */
-const REGEX_SPECIAL_CHARS = ".+^${}()|[]\\/";
-
 /**
  * The default warning sink, used when no onWarning handler is configured.
  *
@@ -78,37 +73,55 @@ function defaultErrorHandler(error: any, name: string): void {
 }
 
 /**
- * Compiles an event name into an anchored matcher, but only when the name
- * actually contains a wildcard.
+ * Tests an event name against a pattern in which "*" matches any run of
+ * characters and "?" matches exactly one.
  *
- * "*" matches any run of characters and "?" matches exactly one. Every other
- * character is escaped, so a name such as "price(usd)*" can never produce an
- * invalid regular expression. The result is anchored, so "user.*" matches
- * "user.created" but not "superuser.created".
+ * The whole name has to match the whole pattern, so "user.*" matches
+ * "user.created" but not "superuser.created". Every other character is
+ * literal, so a name such as "price(usd)*" needs no escaping.
  *
- * @param {string} name - The event name to compile.
- * @returns {RegExp|null} The matcher, or null when the name has no wildcards.
+ * Worst case is O(pattern × name) however many wildcards the pattern holds. A
+ * compiled regular expression backtracks polynomially on patterns such as
+ * "*a*a*a*b", so a long emitted name could stall the thread.
+ *
+ * @param {string} pattern - The registered name, containing wildcards.
+ * @param {string} name - The name being emitted.
+ * @returns {boolean} True when the whole name matches the whole pattern.
  */
-function compileMatcher(name: string): RegExp | null {
-  if (name.indexOf("*") === -1 && name.indexOf("?") === -1) {
-    return null;
-  }
+function globMatches(pattern: string, name: string): boolean {
+  let patIdx = 0;
+  let nameIdx = 0;
+  let starIdx = -1;
+  let starNameIdx = 0;
 
-  let pattern = "";
-  for (let idx = 0, iMax = name.length; idx < iMax; idx += 1) {
-    const char = name.charAt(idx);
+  while (nameIdx < name.length) {
+    const char = pattern.charAt(patIdx);
     if (char === "*") {
-      pattern += ".*";
+      /* Remember the star and first try letting it match nothing. */
+      starIdx = patIdx;
+      starNameIdx = nameIdx;
+      patIdx += 1;
     }
-    else if (char === "?") {
-      pattern += ".";
+    else if (patIdx < pattern.length && (char === "?" || char === name.charAt(nameIdx))) {
+      patIdx += 1;
+      nameIdx += 1;
+    }
+    else if (starIdx !== -1) {
+      /* Mismatch: let the last star absorb one more character and retry. */
+      starNameIdx += 1;
+      nameIdx = starNameIdx;
+      patIdx = starIdx + 1;
     }
     else {
-      pattern += REGEX_SPECIAL_CHARS.indexOf(char) > -1 ? "\\" + char : char;
+      return false;
     }
   }
 
-  return new RegExp("^" + pattern + "$");
+  while (pattern.charAt(patIdx) === "*") {
+    patIdx += 1;
+  }
+
+  return patIdx === pattern.length;
 }
 
 /**
@@ -136,23 +149,47 @@ function toHandler(value: any, fallback: any): any {
 }
 
 /**
- * A registered event handler, along with the matcher compiled from its name.
+ * Returns the namespace to use, falling back to the default when none, or an
+ * empty one, was supplied.
  *
- * The matcher is built once at registration rather than on every emit.
+ * @param {string} [value] - The supplied namespace.
+ * @returns {string} The namespace to use.
+ */
+function toNamespace(value?: string): string {
+  return value ? value : DEFAULT_NAMESPACE;
+}
+
+/**
+ * Throws unless the supplied handler is a function.
+ *
+ * @param {string} name - The event name, used only for the error message.
+ * @param {*} value - The supplied handler.
+ * @throws {TypeError} When the value is not a function.
+ */
+function assertHandler(name: string, value: any): void {
+  if (!is.func(value)) {
+    throw new TypeError(`The handler registered for event ${name} must be a function`);
+  }
+}
+
+/**
+ * A registered event handler, along with whether its name contains wildcards.
+ *
+ * The wildcard check is made once at registration rather than on every emit.
  */
 class EmitterEvent implements IEvent {
   name: string;
   namespace: string;
   func: Callback;
   priority: number;
-  matcher: RegExp | null;
+  isWildcard: boolean;
 
   constructor(name: string, namespace: string, func: Callback, priority?: number) {
     this.name = name;
     this.namespace = namespace;
     this.func = func;
     this.priority = is.number(priority) ? (priority as number) : NORMAL_PRIORITY;
-    this.matcher = compileMatcher(name);
+    this.isWildcard = name.indexOf("*") > -1 || name.indexOf("?") > -1;
   }
 
   /**
@@ -162,7 +199,7 @@ class EmitterEvent implements IEvent {
    * @returns {boolean} True when this handler matches.
    */
   matches(name: string): boolean {
-    return this.matcher ? this.matcher.test(name) : this.name === name;
+    return this.isWildcard ? globMatches(this.name, name) : this.name === name;
   }
 }
 
@@ -304,11 +341,20 @@ class Emitter {
     const namespace = is.func(arg1) ? DEFAULT_NAMESPACE : arg1 as string;
     const callback = is.func(arg1) ? arg1 as Callback : arg2 as Callback;
 
-    if (!is.func(callback)) {
-      throw new TypeError(`The handler registered for event ${name} must be a function`);
-    }
+    assertHandler(name, callback);
 
     return { namespace: namespace, callback: callback };
+  }
+
+  /**
+   * Removes every handler, one-time handlers included, that the predicate
+   * selects.
+   *
+   * @param {Function} predicate - Returns true for each handler to remove.
+   */
+  private removeWhere(predicate: (ev: EmitterEvent) => boolean): void {
+    this._emitter_events = this._emitter_events.filter((ev) => !predicate(ev));
+    this._emitter_oneTime = this._emitter_oneTime.filter((ev) => !predicate(ev));
   }
 
   /**
@@ -349,27 +395,20 @@ class Emitter {
       return;
     }
 
-    let priority = NORMAL_PRIORITY;
-    if (is.number(arg3)) {
-      priority = arg3 as number;
-    }
-
     /* on(name, func, namespace) and on(name, func, priority) both put the
-     * handler first, so the trailing argument decides what it means. */
+     * handler first, so the trailing argument decides what it means. A
+     * missing priority falls back to NORMAL_PRIORITY in EmitterEvent. */
     let namespace: string;
     let callback: Callback;
+    let priority: number | undefined;
     if (is.func(arg1)) {
-      const resolved = this.resolveHandler(name, arg1);
-      callback = resolved.callback;
+      callback = arg1 as Callback;
       namespace = is.string(arg2) ? arg2 as string : DEFAULT_NAMESPACE;
-      if (is.number(arg2)) {
-        priority = arg2 as number;
-      }
+      priority = is.number(arg2) ? arg2 as number : arg3;
     }
     else {
-      const resolved = this.resolveHandler(name, arg1, arg2 as Callback);
-      callback = resolved.callback;
-      namespace = resolved.namespace;
+      ({ namespace, callback } = this.resolveHandler(name, arg1, arg2 as Callback));
+      priority = arg3;
     }
 
     if (this.reachedMax(this._emitter_events, name, this._emitter_config.maxListeners)) {
@@ -425,9 +464,7 @@ class Emitter {
     /* The whole object is checked up front so that a bad entry cannot leave a
      * partial set of registrations behind. */
     for (let idx = 0, iMax = keys.length; idx < iMax; idx += 1) {
-      if (!is.func(obj[keys[idx]])) {
-        throw new TypeError(`The handler registered for event ${keys[idx]} must be a function`);
-      }
+      assertHandler(keys[idx], obj[keys[idx]]);
     }
 
     keys.forEach((key: string) => {
@@ -447,15 +484,14 @@ class Emitter {
    * @param {string} name - The name of the event.
    * @param {string} [namespace='all'] - The namespace of the handler.
    */
-  unregister(name: string, namespace: string = DEFAULT_NAMESPACE): void {
+  unregister(name: string, namespace?: string): void {
     if (!name) {
       return;
     }
 
-    const ns = !namespace ? DEFAULT_NAMESPACE : namespace;
+    const ns = toNamespace(namespace);
 
-    this._emitter_events = this._emitter_events.filter((ev) => ev.name !== name || ev.namespace !== ns);
-    this._emitter_oneTime = this._emitter_oneTime.filter((ev) => ev.name !== name || ev.namespace !== ns);
+    this.removeWhere((ev) => ev.name === name && ev.namespace === ns);
   }
 
   /**
@@ -465,8 +501,7 @@ class Emitter {
    * @param {string} namespace - The namespace to clear.
    */
   offAll(namespace: string): void {
-    this._emitter_events = this._emitter_events.filter((ev) => ev.namespace !== namespace);
-    this._emitter_oneTime = this._emitter_oneTime.filter((ev) => ev.namespace !== namespace);
+    this.removeWhere((ev) => ev.namespace === namespace);
   }
 
   /**
@@ -538,21 +573,10 @@ class Emitter {
    * @returns {boolean} True if an event with the given name and namespace is registered.
    */
   isRegistered(name: string, namespace?: string): boolean {
-    const ns = !namespace ? DEFAULT_NAMESPACE : namespace;
+    const ns = toNamespace(namespace);
+    const registered = (ev: EmitterEvent) => ev.namespace === ns && ev.name === name;
 
-    for (let idx = 0, iMax = this._emitter_events.length; idx < iMax; idx += 1) {
-      if (this._emitter_events[idx].namespace === ns && this._emitter_events[idx].name === name) {
-        return true;
-      }
-    }
-
-    for (let idx = 0, iMax = this._emitter_oneTime.length; idx < iMax; idx += 1) {
-      if (this._emitter_oneTime[idx].namespace === ns && this._emitter_oneTime[idx].name === name) {
-        return true;
-      }
-    }
-
-    return false;
+    return this._emitter_events.some(registered) || this._emitter_oneTime.some(registered);
   }
 }
 

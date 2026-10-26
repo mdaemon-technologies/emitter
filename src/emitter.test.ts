@@ -41,6 +41,43 @@ describe('Emitter', () => {
     expect(emitter.isRegistered('test.namespace1')).toBe(true);
     expect(emitter.isRegistered('test.namespace2')).toBe(true);
   });
+
+  test('should register under a namespace given after the handler', () => {
+    const callback = jest.fn();
+    emitter.on('evt', callback, 'ns');
+
+    expect(emitter.isRegistered('evt', 'ns')).toBe(true);
+    expect(emitter.isRegistered('evt')).toBe(false);
+    expect(emitter.getEvents('evt')[0].priority).toBe(Emitter.NORMAL_PRIORITY);
+
+    emitter.trigger('evt', 1);
+    expect(callback).toHaveBeenCalledWith(1, 'evt');
+  });
+
+  test('should order handlers by a priority given after the handler', () => {
+    const calls: string[] = [];
+    emitter.on('evt', () => calls.push('low'), Emitter.LOW_PRIORITY);
+    emitter.on('evt', () => calls.push('high'), Emitter.HIGH_PRIORITY);
+
+    expect(emitter.isRegistered('evt')).toBe(true);
+
+    emitter.trigger('evt', null);
+    expect(calls).toEqual(['high', 'low']);
+  });
+
+  test('should register each onMany handler under the namespace', () => {
+    const first = jest.fn();
+    const second = jest.fn();
+    emitter.onMany('ns', { first: first, second: second });
+
+    expect(emitter.isRegistered('first', 'ns')).toBe(true);
+    expect(emitter.isRegistered('second', 'ns')).toBe(true);
+
+    emitter.trigger('first', 1);
+    emitter.trigger('second', 2);
+    expect(first).toHaveBeenCalledWith(1, 'first');
+    expect(second).toHaveBeenCalledWith(2, 'second');
+  });
 });
 
 describe('Emitter regressions', () => {
@@ -98,7 +135,7 @@ describe('Emitter regressions', () => {
     });
   });
 
-  describe('event names are escaped before becoming matchers', () => {
+  describe('wildcard names treat everything but * and ? literally', () => {
     test('regex metacharacters in a wildcard name do not throw', () => {
       const emitter = new Emitter();
       emitter.on('a(b*', () => { });
@@ -316,6 +353,122 @@ describe('Emitter regressions', () => {
 
       emitter.trigger('user.created', null);
       expect(hits).toEqual(['on']);
+    });
+  });
+
+  describe('wildcard matching does not backtrack catastrophically', () => {
+    /* A regular expression built from "*a*a*a*a*b" takes minutes to reject a
+     * few thousand characters, so a regression hangs this test. */
+    test('a many-star pattern rejects a long name', () => {
+      const emitter = new Emitter();
+      const hits: string[] = [];
+
+      emitter.on('*a*a*a*a*b', () => hits.push('on'));
+      emitter.once('*a*a*a*a*b', () => hits.push('once'));
+
+      emitter.trigger('a'.repeat(20000), null);
+      expect(hits).toEqual([]);
+
+      emitter.trigger('a'.repeat(20000) + 'b', null);
+      expect(hits).toEqual(['on', 'once']);
+    });
+  });
+
+  describe('wildcards match every character', () => {
+    test('"*" and "?" match line breaks', () => {
+      const emitter = new Emitter();
+      const hits: string[] = [];
+
+      emitter.on('user.*', () => hits.push('star'));
+      emitter.on('a?b', () => hits.push('question'));
+
+      emitter.trigger('user.a\nb', null);
+      emitter.trigger('a\nb', null);
+      expect(hits).toEqual(['star', 'question']);
+    });
+
+    test('a wildcard also matches a literal "*" or "?" in the emitted name', () => {
+      const emitter = new Emitter();
+      const hits: string[] = [];
+
+      emitter.on('*', () => hits.push('star'));
+      emitter.on('a?c', () => hits.push('question'));
+
+      emitter.trigger('*x', null);
+      emitter.trigger('a?c', null);
+      expect(hits).toEqual(['star', 'star', 'question']);
+    });
+  });
+
+  describe('a trailing star may match nothing', () => {
+    test('a name may end where the trailing stars begin', () => {
+      const emitter = new Emitter();
+      const hits: string[] = [];
+
+      emitter.on('user.*', () => hits.push('on'));
+      emitter.once('a**', () => hits.push('once'));
+
+      emitter.trigger('user.', null);
+      emitter.trigger('a', null);
+      expect(hits).toEqual(['on', 'once']);
+    });
+
+    test('"?" always needs a character', () => {
+      const emitter = new Emitter();
+      const hits: string[] = [];
+
+      emitter.on('a?', () => hits.push('question'));
+      emitter.on('a?*', () => hits.push('question-star'));
+
+      emitter.trigger('a', null);
+      expect(hits).toEqual([]);
+    });
+  });
+
+  describe('an empty event name is ignored', () => {
+    test('on and once register nothing under an empty name', () => {
+      const emitter = new Emitter();
+      const handler = jest.fn();
+
+      emitter.on('', handler);
+      emitter.once('', handler);
+      expect(emitter.isRegistered('')).toBe(false);
+
+      emitter.trigger('', null);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    /* No handler can be registered under an empty name, so this documents the
+     * behaviour rather than guarding unregister's early return on its own. */
+    test('unregister with an empty name removes nothing', () => {
+      const emitter = new Emitter();
+      emitter.on('evt', () => { });
+
+      emitter.unregister('');
+      expect(emitter.isRegistered('evt')).toBe(true);
+    });
+
+    test('onMany without an object does nothing', () => {
+      const emitter = new Emitter();
+
+      expect(() => emitter.onMany('ns', null as any)).not.toThrow();
+      expect(() => emitter.onMany('ns', undefined as any)).not.toThrow();
+    });
+  });
+
+  describe('an empty namespace means the default namespace', () => {
+    test('unregister and isRegistered treat "" and undefined as "all"', () => {
+      const emitter = new Emitter();
+
+      emitter.on('evt', () => { });
+      emitter.once('other', () => { });
+      expect(emitter.isRegistered('evt', '')).toBe(true);
+      expect(emitter.isRegistered('other', '')).toBe(true);
+
+      emitter.unregister('evt', '');
+      emitter.unregister('other', undefined);
+      expect(emitter.isRegistered('evt')).toBe(false);
+      expect(emitter.isRegistered('other')).toBe(false);
     });
   });
 

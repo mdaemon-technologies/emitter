@@ -5,6 +5,51 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-10-26
+
+### Security
+
+- Wildcard matching no longer uses a regular expression. A pattern with several
+  stars, such as `*a*a*a*b`, backtracked polynomially, so emitting a long name
+  that did not match could block the thread for seconds or minutes (3.8 s for
+  a 400-character name with four stars). Matching now takes time proportional
+  to the pattern length times the name length, however many wildcards the
+  pattern holds.
+
+### Added
+
+- Releases are published from GitHub Actions when a GitHub Release is created,
+  using npm trusted publishing (OIDC, no stored npm token) and staged
+  publishing, so each version is approved with 2FA before it is public. The
+  workflow pins its actions to commit SHAs and npm to an exact version, does
+  not restore the npm cache, and does not leave the GitHub token in the
+  checkout.
+
+### Changed
+
+- `*` and `?` now match line breaks in an emitted name. Previously `user.*` did
+  not match `"user.a\nb"`.
+- CI uses `actions/checkout` and `actions/setup-node` v7, pinned to commit SHAs.
+
+### Fixed
+
+- `dist/emitter.cjs.d.ts`, `dist/emitter.mjs.d.ts` and `dist/emitter.umd.d.ts`
+  now re-export the `WarningHandler` and `ErrorHandler` types, matching
+  `dist/emitter.d.ts`.
+
+## [3.0.1] - 2026-09-21
+
+No code changes.
+
+### Changed
+
+- `package.json` declares `"engines": { "node": ">=18" }`, the oldest Node
+  version CI tests.
+- The README imports the package by name (`import Emitter from "@mdaemon/emitter"`,
+  `require("@mdaemon/emitter")`) instead of by a path into `dist/`, which Node
+  has rejected since 2.0.9. Version history moved from the README to this
+  changelog.
+
 ## [3.0.0] - 2026-09-09
 
 A correctness pass over the emitter. Several of these change observable
@@ -106,11 +151,153 @@ in `src/emitter.test.ts`.
   `'all'` removed every handler for an event name. `'all'` is the default
   namespace, not a wildcard.
 
+## [2.1.1] - 2026-05-19
+
+### Added
+
+- A `types` condition in the `exports` map, so TypeScript finds the typings
+  when it resolves the package through `exports`.
+
+### Changed
+
+- `dist/emitter.cjs.d.ts` re-exports the real declarations (the default
+  `Emitter` plus `Callback`, `IEmitterConfig` and `IEvent`) instead of declaring
+  an empty ambient module.
+- Removed the `browser` field from `package.json`. `main` still points at the
+  UMD bundle.
+- CI tests on Node 18, 20, 22, 24 and 26 instead of 14 through 22.
+
+## [2.1.0] - 2026-05-18
+
+The bundles are unchanged; this release only changes the typings.
+
+### Added
+
+- `dist/emitter.d.ts` exports the `Callback`, `IEmitterConfig` and `IEvent`
+  types.
+- Typings for the constructor, `config`, `getEvents` and `triggerOneTime`.
+
+### Changed
+
+- `register`, `on` and `subscribe` are typed as one overload per argument form,
+  `(name, func, priority?)`, `(name, namespace, func, priority?)` and
+  `(name, func, namespace)`, instead of one loosely typed signature. `onMany`
+  takes `{ [key: string]: Callback }` instead of `any`.
+- `dist/emitter.mjs.d.ts` and `dist/emitter.umd.d.ts` re-export the real
+  declarations instead of declaring empty ambient modules.
+
+### Fixed
+
+- The namespace argument of `isRegistered` is optional in the typings, matching
+  the code.
+
+## [2.0.10] - 2026-05-18
+
+### Fixed
+
+- The `require` condition in the `exports` map points at `dist/emitter.cjs`.
+  In 2.0.9 it pointed at the UMD bundle.
+
+## [2.0.9] - 2026-05-18
+
+### Added
+
+- An `exports` map in `package.json`, so `import Emitter from "@mdaemon/emitter"`
+  loads `dist/emitter.mjs` and `require("@mdaemon/emitter")` loads a CommonJS
+  build.
+
+### Changed
+
+- **Breaking in a patch release:** with an `exports` map in place, Node no
+  longer resolves paths into the package, so
+  `require("@mdaemon/emitter/dist/emitter.cjs")` and
+  `import Emitter from "@mdaemon/emitter/dist/emitter.mjs"`, the forms the README
+  documented until 3.0.1, fail with `ERR_PACKAGE_PATH_NOT_EXPORTED`. Import the
+  package by name instead.
+
+## [2.0.8] - 2025-07-24
+
+### Fixed
+
+- The typings declare the static `HIGH_PRIORITY`, `NORMAL_PRIORITY` and
+  `LOW_PRIORITY` constants.
+
+## [2.0.7] - 2025-04-24
+
+### Changed
+
+- Updated development dependencies, including Rollup 2 to 4. The published
+  bundles are unchanged.
+
+## [2.0.6] - 2025-03-14
+
+### Changed
+
+- Updated development dependencies. The published bundles are unchanged.
+
+## [2.0.5] - 2024-10-08
+
+### Fixed
+
+- `typings` in `package.json` points at `dist/emitter.d.ts`. 2.0.4 renamed the
+  declaration file but left `typings` pointing at the old name, so TypeScript
+  found no declarations for that release.
+
+## [2.0.4] - 2024-10-08
+
+### Fixed
+
+- The declaration file uses `export default`, matching the bundles, instead of
+  `export =`. It is renamed from `dist/index.d.ts` to `dist/emitter.d.ts`.
+
+## [2.0.3] - 2024-09-20
+
+### Added
+
+- A `config` getter, with no setter, that returns the emitter's configuration.
+
+### Changed
+
+- The internal fields are renamed `_emitter_config`, `_emitter_events` and
+  `_emitter_oneTime` (previously `config`, `events` and `oneTime`), so they are
+  less likely to collide with a subclass's own fields or with an object that
+  copies an emitter in through `Object.assign(this, new Emitter())`.
+
+## [2.0.2] - 2024-09-19
+
+### Fixed
+
+- The namespace argument of `unregister`, `off` and `unsubscribe` is optional
+  again in the typings. 2.0.1 had made it required.
+
+## [2.0.1] - 2024-09-19
+
+### Fixed
+
+- The typings for `register`, `on` and `subscribe` accept the priority
+  argument.
+- Removed the default values from the `unregister`, `off` and `unsubscribe`
+  declarations; a declaration file cannot contain them.
+
 ## [2.0.0] - 2024-09-12
 
 ### Changed
 
 - Converted to TypeScript and ES6 modules.
 
+[3.1.0]: https://www.npmjs.com/package/@mdaemon/emitter/v/3.1.0
+[3.0.1]: https://www.npmjs.com/package/@mdaemon/emitter/v/3.0.1
 [3.0.0]: https://www.npmjs.com/package/@mdaemon/emitter/v/3.0.0
+[2.1.1]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.1.1
+[2.1.0]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.1.0
+[2.0.10]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.10
+[2.0.9]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.9
+[2.0.8]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.8
+[2.0.7]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.7
+[2.0.6]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.6
+[2.0.5]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.5
+[2.0.4]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.4
+[2.0.3]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.3
+[2.0.2]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.2
+[2.0.1]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.1
 [2.0.0]: https://www.npmjs.com/package/@mdaemon/emitter/v/2.0.0

@@ -30,7 +30,19 @@ const Emitter = require("@mdaemon/emitter");
 
 ### Browser (UMD)
 ```html
-<script type="text/javascript" src="/path_to_modules/dist/emitter.umd.js">
+<script type="text/javascript" src="/path_to_modules/dist/emitter.umd.js"></script>
+```
+
+The UMD bundle defines a global `Emitter`.
+
+### TypeScript
+
+Typings are included. Besides the default `Emitter` class, the package exports
+the `Callback`, `IEmitterConfig`, `IEvent`, `WarningHandler` and `ErrorHandler`
+types.
+
+```ts
+import Emitter, { type IEmitterConfig } from "@mdaemon/emitter";
 ```
 
 ## Emitter
@@ -48,6 +60,7 @@ const Emitter = require("@mdaemon/emitter");
 
 // every option may be omitted, and the config is frozen once set
 const emitter = new Emitter({
+    // the most handlers, and one-time handlers, a single event name may have
     maxListeners: 20,     // defaults to 50
     maxOnceListeners: 40, // defaults to 50
 
@@ -77,6 +90,11 @@ emitter.on("test", (input) => {
 
 emitter.emit("test", "calling all");
 // calling all this gets called
+
+// without a namespace, off removes the handlers in the "all" namespace.
+// "all" is the default namespace, not a wildcard, so handlers registered
+// under any other namespace stay registered
+emitter.off("test");
 
 // registering more than once against the same name and namespace keeps every
 // handler, and they are called in priority order
@@ -162,7 +180,9 @@ emitter.offAll("namespace");
 
 emitter.emit("test", "nothing will be logged");
 
-// a priority property can be added to the end of the paramters
+// a priority can be added as the last parameter. Higher numbers are called
+// first; Emitter.HIGH_PRIORITY, Emitter.NORMAL_PRIORITY (the default) and
+// Emitter.LOW_PRIORITY are provided
 emitter.on("test3", "namespace", () => {
     console.log("this will be logged last");
 }, Emitter.LOW_PRIORITY);
@@ -175,7 +195,37 @@ emitter.emit("test3");
 // this will be logged first
 // this will be logged last
 
+// when the handler comes second, the third parameter may be a priority or a
+// namespace
+emitter.on("test4", () => {
+    console.log("high priority, in the all namespace");
+}, Emitter.HIGH_PRIORITY);
+
+emitter.on("test4", () => {
+    console.log("normal priority, in namespace");
+}, "namespace");
+
+emitter.emit("test4");
+// high priority, in the all namespace
+// normal priority, in namespace
+
 // once registrations do not have a priority, because the event will only execute once
+
+// getEvents returns the regular (not one-time) handlers an event name would
+// call, in the order they would be called
+emitter.getEvents("test3").map((ev) => ev.priority);
+// [ 2, 0 ]
+
+// triggerOneTime calls and removes only the one-time handlers for an event
+emitter.on("mixed", () => { console.log("regular handler"); });
+emitter.once("mixed", () => { console.log("one-time handler"); });
+
+emitter.triggerOneTime("mixed");
+// one-time handler
+
+// config returns the frozen configuration, with any defaults filled in
+emitter.config.maxListeners;
+// 20
 ```
 
 ## Changelog
